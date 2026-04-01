@@ -3,6 +3,7 @@ package com.viagens.ui.screens.forgotpassword
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -17,7 +18,8 @@ fun ForgotPasswordScreen(navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp),
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
         Text("Recuperar Senha", style = MaterialTheme.typography.headlineMedium)
@@ -27,7 +29,9 @@ fun ForgotPasswordScreen(navController: NavController) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Digite seu e-mail") }
+            label = { Text("Digite seu e-mail") },
+            modifier = Modifier.fillMaxWidth()
+
         )
 
         Spacer(modifier = Modifier.height(20.dp))
