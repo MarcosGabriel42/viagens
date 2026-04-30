@@ -4,14 +4,18 @@ import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.text.input.KeyboardType
 import com.viagens.ui.navigation.Screen
 import com.viagens.viewmodel.AuthViewModel
+import com.viagens.ui.components.CustomTextField
+import com.viagens.ui.components.AppLogo
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -31,79 +35,133 @@ fun RegisterScreen(navController: NavController) {
                 .padding(it)
                 .padding(16.dp)
                 .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Text("Cadastro", style = MaterialTheme.typography.headlineMedium)
+            // 🔥 Logo reutilizada
+            AppLogo()
+
+            Text(
+                text = "Criar Conta",
+                style = MaterialTheme.typography.headlineMedium
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedTextField(
+            // 👤 Nome
+            CustomTextField(
                 value = nome,
                 onValueChange = { nome = it },
-                label = { Text("Nome") },
+                label = "Nome Completo",
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 📧 Email
+            CustomTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("E-mail") },
+                label = "E-mail",
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 📱 Telefone (somente números)
             OutlinedTextField(
                 value = telefone,
-                onValueChange = { telefone = it },
+                onValueChange = { input ->
+                    val digits = input.filter { it.isDigit() }
+
+                    if (digits.length <= 11) {
+                        telefone = digits
+                    }
+                },
                 label = { Text("Telefone") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 🔒 Senha
+            CustomTextField(
                 value = senha,
                 onValueChange = { senha = it },
-                label = { Text("Senha") },
+                label = "Senha",
+                isPassword = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 🔒 Confirmar Senha
+            CustomTextField(
                 value = confirmarSenha,
                 onValueChange = { confirmarSenha = it },
-                label = { Text("Confirmar Senha") },
+                label = "Confirmar Senha",
+                isPassword = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // ✅ Botão cadastrar
             Button(
                 onClick = {
-                    if (
-                        nome.isNotEmpty() &&
-                        email.isNotEmpty() &&
-                        telefone.isNotEmpty() &&
-                        senha == confirmarSenha
-                    ) {
-                        viewModel.registerUser(
-                            nome = nome,
-                            email = email,
-                            senha = senha,
-                            onSuccess = {
-                                Toast.makeText(
-                                    context,
-                                    "Usuário cadastrado com sucesso!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
 
-                                navController.navigate(Screen.Login.route)
-                            }
-                        )
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Preencha os campos corretamente",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    when {
+                        nome.isEmpty() ||
+                                email.isEmpty() ||
+                                telefone.length != 11 -> {
+                            Toast.makeText(
+                                context,
+                                "Preencha todos os campos corretamente",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        !email.contains("@") -> {
+                            Toast.makeText(
+                                context,
+                                "Email inválido",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        senha != confirmarSenha -> {
+                            Toast.makeText(
+                                context,
+                                "As senhas não coincidem",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        else -> {
+                            viewModel.registerUser(
+                                nome = nome,
+                                email = email,
+                                senha = senha,
+                                telefone = telefone, // 🔥 só números
+                                onSuccess = {
+                                    Toast.makeText(
+                                        context,
+                                        "Cadastro realizado com sucesso!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    navController.navigate(Screen.Login.route)
+                                },
+                                onError = { erro ->
+                                    Toast.makeText(
+                                        context,
+                                        erro,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

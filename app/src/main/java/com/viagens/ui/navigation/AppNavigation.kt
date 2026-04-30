@@ -30,7 +30,7 @@ fun AppNavigation() {
         }
 
         composable(Screen.Menu.route) {
-            MenuScreen()
+            MenuScreen(navController)
         }
     }
 }
