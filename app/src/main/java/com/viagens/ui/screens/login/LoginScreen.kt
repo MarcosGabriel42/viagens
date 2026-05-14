@@ -1,11 +1,14 @@
 package com.viagens.ui.screens.login
 
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.viagens.ui.components.CustomTextField
 import com.viagens.ui.components.AppLogo
@@ -13,6 +16,9 @@ import com.viagens.ui.navigation.Screen
 
 @Composable
 fun LoginScreen(navController: NavController) {
+
+    val viewModel: AuthViewModel = viewModel()
+    val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
@@ -58,7 +64,19 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                navController.navigate(Screen.Menu.route)
+                if (email.isNotEmpty() && senha.isNotEmpty()) {
+                    viewModel.login(email, senha) { sucesso ->
+                        if (sucesso) {
+                            navController.navigate(Screen.Menu.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        } else {
+                            Toast.makeText(context, "E-mail ou senha inválidos", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(context, "Preencha todos os campos", Toast.LENGTH_SHORT).show()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {

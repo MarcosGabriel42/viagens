@@ -13,7 +13,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.text.input.KeyboardType
 import com.viagens.ui.navigation.Screen
-import com.viagens.viewmodel.AuthViewModel
 import com.viagens.ui.components.CustomTextField
 import com.viagens.ui.components.AppLogo
 
