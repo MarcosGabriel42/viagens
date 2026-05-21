@@ -6,7 +6,11 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
@@ -15,13 +19,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.viagens.ui.components.PrimaryButton
+import com.viagens.ui.components.WaveHeader
 import com.viagens.ui.navigation.Screen
+import com.viagens.ui.theme.*
 import com.viagens.viewmodel.AuthViewModel
 import com.viagens.viewmodel.TripViewModel
 import kotlinx.coroutines.launch
@@ -41,7 +51,6 @@ fun MenuScreen(navController: NavController) {
     val currentTrip by tripViewModel.currentTrip.collectAsState()
     val currentCity by tripViewModel.currentCity.collectAsState()
 
-    // Gerenciador de Permissão de Localização
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -51,17 +60,12 @@ fun MenuScreen(navController: NavController) {
         }
     }
 
-    // Verificar permissões ao abrir a tela
     LaunchedEffect(Unit) {
         val hasFineLocation = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
         
-        val hasCoarseLocation = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (hasFineLocation || hasCoarseLocation) {
+        if (hasFineLocation) {
             tripViewModel.requestLocationAndSearchTrip()
         } else {
             permissionLauncher.launch(
@@ -80,54 +84,72 @@ fun MenuScreen(navController: NavController) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                drawerContainerColor = White,
+                drawerTonalElevation = 0.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(TopGradientStart, TopGradientBase)
+                            )
+                        ),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "Viagens App",
+                        color = White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 24.dp)
+                    )
+                }
+                
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Menu Principal",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 NavigationDrawerItem(
-                    label = { Text("Nova Viagem") },
+                    label = { Text("Nova Viagem", fontWeight = FontWeight.Medium) },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
                         navController.navigate(Screen.NewTrip.route)
                     },
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    icon = { Icon(Icons.Default.Add, contentDescription = null, tint = TopGradientMedium) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
                 )
 
                 NavigationDrawerItem(
-                    label = { Text("Minhas Viagens") },
+                    label = { Text("Minhas Viagens", fontWeight = FontWeight.Medium) },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
                         navController.navigate(Screen.MyTrips.route)
                     },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, tint = TopGradientMedium) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
                 NavigationDrawerItem(
-                    label = { Text("Sobre") },
+                    label = { Text("Sobre", fontWeight = FontWeight.Medium) },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
                         navController.navigate(Screen.About.route)
                     },
-                    icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    icon = { Icon(Icons.Default.Info, contentDescription = null, tint = TopGradientMedium) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
 
                 NavigationDrawerItem(
-                    label = { Text("Sair") },
+                    label = { Text("Sair", color = Color.Red, fontWeight = FontWeight.Bold) },
                     selected = false,
                     onClick = {
                         authViewModel.logout()
@@ -135,72 +157,131 @@ fun MenuScreen(navController: NavController) {
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color.Red) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
                 )
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("Viagens") },
+                CenterAlignedTopAppBar(
+                    title = { Text("HOME", fontWeight = FontWeight.Bold, color = White, fontSize = 18.sp) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = White)
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = TopGradientStart
+                    )
                 )
             }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
+                    .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp)
-                    .fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Bem-vindo!",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                
-                currentCity?.let {
-                    Text(text = "Você está em: $it", style = MaterialTheme.typography.bodyMedium)
-                }
+                WaveHeader(title = "Olá!")
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (currentCity != null) "Você está em $currentCity" else "Buscando localização...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = PlaceholderGray
+                    )
 
-                val trip = currentTrip
-                if (trip != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Text(
+                        text = "VIAGEM ATUAL",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = TopGradientMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val trip = currentTrip
+                    if (trip != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = InputBackground),
+                            elevation = CardDefaults.cardElevation(0.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text(
+                                    text = trip.destination,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = TopGradientMedium
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("${df.format(Date(trip.startDate))} - ${df.format(Date(trip.endDate))}", color = PlaceholderGray)
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text("Orçamento", fontSize = 12.sp, color = PlaceholderGray)
+                                        Text("R$ ${String.format(Locale.getDefault(), "%.2f", trip.budget)}", fontWeight = FontWeight.Bold, color = TextDark)
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text("Gasto Total", fontSize = 12.sp, color = PlaceholderGray)
+                                        Text("R$ ${String.format(Locale.getDefault(), "%.2f", trip.totalSpent)}", fontWeight = FontWeight.Bold, color = ButtonGradientStart)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .background(InputBackground, RoundedCornerShape(24.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = "Viagem Atual: ${trip.destination}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                text = "Nenhuma viagem ativa para este local.",
+                                color = PlaceholderGray,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(24.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                            Text("Início: ${df.format(Date(trip.startDate))}")
-                            Text("Fim: ${df.format(Date(trip.endDate))}")
-                            Text("Tipo: ${trip.type}")
-                            Text("Orçamento: R$ ${String.format(Locale.getDefault(), "%.2f", trip.budget)}")
-                            Text("Total de Gastos: R$ ${String.format(Locale.getDefault(), "%.2f", trip.totalSpent)}")
                         }
                     }
-                } else {
-                    Text(
-                        text = "Nenhuma viagem ativa para sua localização atual.",
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    PrimaryButton(
+                        text = "NOVA VIAGEM",
+                        onClick = { navController.navigate(Screen.NewTrip.route) }
                     )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
