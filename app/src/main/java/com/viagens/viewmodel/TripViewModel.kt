@@ -1,39 +1,33 @@
 package com.viagens.viewmodel
 
-import android.annotation.SuppressLint
 import android.app.Application
 import android.location.Geocoder
-import android.location.Location
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import com.viagens.data.local.database.AppDatabase
 import com.viagens.data.local.entity.Trip
 import com.viagens.data.local.session.SessionManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Locale
+import java.util.*
 
 class TripViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getDatabase(application)
-    private val tripDao = db.tripDao()
-    private val userDao = db.userDao()
+    private val tripDao = AppDatabase.getDatabase(application).tripDao()
+    private val userDao = AppDatabase.getDatabase(application).userDao()
     private val sessionManager = SessionManager(application)
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 
     private val _trips = MutableStateFlow<List<Trip>>(emptyList())
-    val trips: StateFlow<List<Trip>> = _trips
+    val trips: StateFlow<List<Trip>> = _trips.asStateFlow()
 
     private val _currentTrip = MutableStateFlow<Trip?>(null)
-    val currentTrip: StateFlow<Trip?> = _currentTrip
+    val currentTrip: StateFlow<Trip?> = _currentTrip.asStateFlow()
 
     private val _currentCity = MutableStateFlow<String?>(null)
-    val currentCity: StateFlow<String?> = _currentCity
+    val currentCity: StateFlow<String?> = _currentCity.asStateFlow()
 
     init {
         loadTrips()
@@ -45,49 +39,9 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             if (email != null) {
                 val user = userDao.getUserByEmail(email)
                 if (user != null) {
-                    tripDao.getTripsByUser(user.id).collectLatest {
+                    tripDao.getTripsByUser(user.id).collect {
                         _trips.value = it
                     }
-                }
-            }
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun requestLocationAndSearchTrip() {
-        val cts = CancellationTokenSource()
-        fusedLocationClient.getCurrentLocation(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            cts.token
-        ).addOnSuccessListener { location: Location? ->
-            location?.let {
-                val geocoder = Geocoder(getApplication(), Locale.getDefault())
-                try {
-                    @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocation(it.latitude, it.longitude, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        val city = addresses[0].locality
-                        _currentCity.value = city
-                        city?.let { cityName ->
-                            searchCurrentTrip(cityName)
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
-    private fun searchCurrentTrip(city: String) {
-        viewModelScope.launch {
-            val email = sessionManager.getUser()
-            if (email != null) {
-                val user = userDao.getUserByEmail(email)
-                if (user != null) {
-                    val currentTime = System.currentTimeMillis()
-                    val trip = tripDao.findTripByCityAndDate(user.id, city, currentTime)
-                    _currentTrip.value = trip
                 }
             }
         }
@@ -98,7 +52,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun saveTrip(
-        id: Int = 0,
+        id: Int,
         destination: String,
         type: String,
         startDate: Long,
@@ -142,6 +96,47 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteTrip(trip: Trip) {
         viewModelScope.launch {
             tripDao.delete(trip)
+        }
+    }
+
+    fun requestLocationAndSearchTrip() {
+        try {
+            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { location ->
+                    if (location != null) {
+                        searchTripByLocation(location.latitude, location.longitude)
+                    }
+                }
+        } catch (e: SecurityException) {
+            // Permissão não concedida, tratado na UI
+        }
+    }
+
+    private fun searchTripByLocation(latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            val geocoder = Geocoder(getApplication(), Locale.getDefault())
+            try {
+                val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    val city = addresses[0].locality
+                    _currentCity.value = city
+                    
+                    val email = sessionManager.getUser()
+                    if (email != null && city != null) {
+                        val user = userDao.getUserByEmail(email)
+                        if (user != null) {
+                            val trip = tripDao.findTripByCityAndDate(
+                                user.id,
+                                city,
+                                System.currentTimeMillis()
+                            )
+                            _currentTrip.value = trip
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

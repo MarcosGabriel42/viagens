@@ -13,6 +13,7 @@ import androidx.navigation.NavController
 import com.viagens.ui.components.CustomTextField
 import com.viagens.ui.components.AppLogo
 import com.viagens.ui.navigation.Screen
+import com.viagens.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(navController: NavController) {

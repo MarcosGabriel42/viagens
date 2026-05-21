@@ -51,12 +51,17 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun login(email: String, senha: String, onResult: (Boolean) -> Unit) {
+    fun login(
+        email: String,
+        senha: String,
+        onResult: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
+
             val user = userDao.login(email, senha)
 
             if (user != null) {
-                sessionManager.saveUser(email) // 💾 salva sessão
+                sessionManager.saveUser(email)
                 onResult(true)
             } else {
                 onResult(false)

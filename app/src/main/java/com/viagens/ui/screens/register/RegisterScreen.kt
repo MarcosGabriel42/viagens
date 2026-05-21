@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.viagens.ui.navigation.Screen
 import com.viagens.ui.components.CustomTextField
 import com.viagens.ui.components.AppLogo
+import com.viagens.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -37,7 +38,7 @@ fun RegisterScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // 🔥 Logo reutilizada
+            // Logo reutilizada
             AppLogo()
 
             Text(
@@ -47,7 +48,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 👤 Nome
+            // Nome
             CustomTextField(
                 value = nome,
                 onValueChange = { nome = it },
@@ -57,7 +58,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 📧 Email
+            // Email
             CustomTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -67,7 +68,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 📱 Telefone (somente números)
+            // Telefone (somente números)
             OutlinedTextField(
                 value = telefone,
                 onValueChange = { input ->
@@ -84,7 +85,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 🔒 Senha
+            // Senha
             CustomTextField(
                 value = senha,
                 onValueChange = { senha = it },
@@ -95,7 +96,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 🔒 Confirmar Senha
+            // Confirmar Senha
             CustomTextField(
                 value = confirmarSenha,
                 onValueChange = { confirmarSenha = it },
@@ -106,7 +107,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ✅ Botão cadastrar
+            // Botão cadastrar
             Button(
                 onClick = {
 
@@ -116,7 +117,7 @@ fun RegisterScreen(navController: NavController) {
                                 telefone.length != 11 -> {
                             Toast.makeText(
                                 context,
-                                "Preencha todos os campos corretamente",
+                                "Preencha todos os campos corretamente (Telefone com DDD)",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -142,7 +143,7 @@ fun RegisterScreen(navController: NavController) {
                                 nome = nome,
                                 email = email,
                                 senha = senha,
-                                telefone = telefone, // 🔥 só números
+                                telefone = telefone,
                                 onSuccess = {
                                     Toast.makeText(
                                         context,

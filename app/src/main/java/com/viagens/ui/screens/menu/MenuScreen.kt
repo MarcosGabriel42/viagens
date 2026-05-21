@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.viagens.ui.navigation.Screen
+import com.viagens.viewmodel.AuthViewModel
 import com.viagens.viewmodel.TripViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -133,7 +135,7 @@ fun MenuScreen(navController: NavController) {
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
+                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }
@@ -170,7 +172,8 @@ fun MenuScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                currentTrip?.let { trip ->
+                val trip = currentTrip
+                if (trip != null) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -189,11 +192,11 @@ fun MenuScreen(navController: NavController) {
                             Text("Início: ${df.format(Date(trip.startDate))}")
                             Text("Fim: ${df.format(Date(trip.endDate))}")
                             Text("Tipo: ${trip.type}")
-                            Text("Orçamento: R$ ${String.format("%.2f", trip.budget)}")
-                            Text("Total de Gastos: R$ ${String.format("%.2f", trip.totalSpent)}")
+                            Text("Orçamento: R$ ${String.format(Locale.getDefault(), "%.2f", trip.budget)}")
+                            Text("Total de Gastos: R$ ${String.format(Locale.getDefault(), "%.2f", trip.totalSpent)}")
                         }
                     }
-                } ?: run {
+                } else {
                     Text(
                         text = "Nenhuma viagem ativa para sua localização atual.",
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
