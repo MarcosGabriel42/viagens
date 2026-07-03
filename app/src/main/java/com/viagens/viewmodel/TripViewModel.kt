@@ -29,6 +29,12 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentCity = MutableStateFlow<String?>(null)
     val currentCity: StateFlow<String?> = _currentCity.asStateFlow()
 
+    val nearestTrip: StateFlow<Trip?> = _trips.map { list ->
+        val now = System.currentTimeMillis()
+        list.filter { it.endDate >= now }
+            .minByOrNull { it.startDate }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         loadTrips()
     }

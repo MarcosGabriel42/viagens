@@ -58,8 +58,13 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
-    // Localização
+    // Localização e Mapas
     implementation(libs.play.services.location)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
+
+    // Imagens (Coil)
+    implementation(libs.coil.compose)
 
     // Room
     implementation(libs.room.runtime)

@@ -29,6 +29,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.viagens.ui.components.PrimaryButton
+import com.viagens.ui.components.TripItem
 import com.viagens.ui.components.WaveHeader
 import com.viagens.ui.navigation.Screen
 import com.viagens.ui.theme.*
@@ -48,7 +49,7 @@ fun MenuScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     
-    val currentTrip by tripViewModel.currentTrip.collectAsState()
+    val nearestTrip by tripViewModel.nearestTrip.collectAsState()
     val currentCity by tripViewModel.currentCity.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -203,7 +204,7 @@ fun MenuScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "VIAGEM ATUAL",
+                        text = "SUA PRÓXIMA VIAGEM",
                         style = MaterialTheme.typography.labelLarge,
                         color = TopGradientMedium,
                         fontWeight = FontWeight.Bold
@@ -211,52 +212,14 @@ fun MenuScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val trip = currentTrip
+                    val trip = nearestTrip
                     if (trip != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(containerColor = InputBackground),
-                            elevation = CardDefaults.cardElevation(0.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = trip.destination,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarToday,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = TopGradientMedium
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("${df.format(Date(trip.startDate))} - ${df.format(Date(trip.endDate))}", color = PlaceholderGray)
-                                }
-                                
-                                Spacer(modifier = Modifier.height(12.dp))
-                                
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column {
-                                        Text("Orçamento", fontSize = 12.sp, color = PlaceholderGray)
-                                        Text("R$ ${String.format(Locale.getDefault(), "%.2f", trip.budget)}", fontWeight = FontWeight.Bold, color = TextDark)
-                                    }
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text("Gasto Total", fontSize = 12.sp, color = PlaceholderGray)
-                                        Text("R$ ${String.format(Locale.getDefault(), "%.2f", trip.totalSpent)}", fontWeight = FontWeight.Bold, color = ButtonGradientStart)
-                                    }
-                                }
+                        TripItem(
+                            trip = trip,
+                            onClick = {
+                                navController.navigate(Screen.TripDetails.createRoute(trip.id))
                             }
-                        }
+                        )
                     } else {
                         Box(
                             modifier = Modifier

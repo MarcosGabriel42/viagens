@@ -1,6 +1,5 @@
 package com.viagens.ui.screens.mytrips
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.viagens.data.local.entity.Trip
+import com.viagens.ui.components.TripItem
+import com.viagens.ui.navigation.Screen
 import com.viagens.ui.theme.*
 import com.viagens.viewmodel.TripViewModel
 import java.text.SimpleDateFormat
@@ -67,78 +68,14 @@ fun MyTripsScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(trips) { trip ->
-                    TripItem(trip = trip, onDelete = { viewModel.deleteTrip(trip) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TripItem(trip: Trip, onDelete: () -> Unit) {
-    val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = InputBackground),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(White, RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (trip.type == "Lazer") Icons.Default.BeachAccess else Icons.Default.BusinessCenter,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = TopGradientMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = trip.destination,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
-                )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = PlaceholderGray
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${dateFormatter.format(Date(trip.startDate))} - ${dateFormatter.format(Date(trip.endDate))}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = PlaceholderGray
+                    TripItem(
+                        trip = trip, 
+                        onDelete = { viewModel.deleteTrip(trip) },
+                        onClick = {
+                            navController.navigate(Screen.TripDetails.createRoute(trip.id))
+                        }
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = "R$ ${String.format(Locale.getDefault(), "%.2f", trip.budget)}",
-                    fontWeight = FontWeight.ExtraBold,
-                    color = ButtonGradientStart,
-                    fontSize = 14.sp
-                )
-            }
-
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = Color.Red.copy(alpha = 0.6f))
             }
         }
     }

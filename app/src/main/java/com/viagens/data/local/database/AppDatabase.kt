@@ -6,14 +6,17 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.viagens.data.local.dao.UserDao
 import com.viagens.data.local.dao.TripDao
+import com.viagens.data.local.dao.PhotoDao
 import com.viagens.data.local.entity.User
 import com.viagens.data.local.entity.Trip
+import com.viagens.data.local.entity.Photo
 
-@Database(entities = [User::class, Trip::class], version = 10, exportSchema = false)
+@Database(entities = [User::class, Trip::class, Photo::class], version = 11, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
     abstract fun tripDao(): TripDao
+    abstract fun photoDao(): PhotoDao
 
     companion object {
         @Volatile
