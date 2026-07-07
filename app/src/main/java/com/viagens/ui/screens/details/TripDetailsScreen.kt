@@ -1,6 +1,5 @@
 package com.viagens.ui.screens.details
 
-import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
@@ -9,7 +8,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -30,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -56,8 +59,10 @@ fun TripDetailsScreen(navController: NavController, tripId: Int) {
     val trip by viewModel.trip.collectAsState()
     val photos by viewModel.photos.collectAsState()
     val location by viewModel.location.collectAsState()
+    val itinerary by viewModel.itinerary.collectAsState()
+    val isGenerating by viewModel.isGenerating.collectAsState()
     
-    var selectedTab by remember { mutableIntStateOf(1) } // 0: Roteiro, 1: Fotos
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Roteiro, 1: Fotos
     
     val context = LocalContext.current
     
@@ -114,7 +119,13 @@ fun TripDetailsScreen(navController: NavController, tripId: Int) {
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             if (selectedTab == 0) {
-                RoteiroContent(trip, location)
+                RoteiroContent(
+                    trip = trip,
+                    location = location,
+                    itinerary = itinerary,
+                    isGenerating = isGenerating,
+                    onGenerate = { interests -> viewModel.generateItinerary(tripId, interests) }
+                )
             } else {
                 PhotosContent(photos, tripId, navController)
             }
@@ -123,44 +134,134 @@ fun TripDetailsScreen(navController: NavController, tripId: Int) {
 }
 
 @Composable
-fun RoteiroContent(trip: com.viagens.data.local.entity.Trip?, location: LatLng?) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
-            val destination = location ?: LatLng(-23.5505, -46.6333) // Default SP if null
-            val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(destination, 10f)
-            }
-            
-            LaunchedEffect(location) {
-                location?.let {
-                    cameraPositionState.position = CameraPosition.fromLatLngZoom(it, 10f)
-                }
-            }
+fun RoteiroContent(
+    trip: com.viagens.data.local.entity.Trip?,
+    location: LatLng?,
+    itinerary: com.viagens.data.local.entity.Itinerary?,
+    isGenerating: Boolean,
+    onGenerate: (String) -> Unit
+) {
+    var interests by remember { mutableStateOf("") }
+    val scrollState = rememberScrollState()
 
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState
-            ) {
-                Marker(
-                    state = rememberMarkerState(position = destination),
-                    title = trip?.destination
-                )
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+        Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
+            if (location != null) {
+                val cameraPositionState = rememberCameraPositionState {
+                    position = CameraPosition.fromLatLngZoom(location, 12f)
+                }
+                
+                LaunchedEffect(location) {
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(location, 12f)
+                }
+
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState,
+                    uiSettings = com.google.maps.android.compose.MapUiSettings(zoomControlsEnabled = true)
+                ) {
+                    Marker(
+                        state = rememberMarkerState(position = location),
+                        title = trip?.destination
+                    )
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize().background(InputBackground), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = ButtonGradientStart)
+                }
             }
         }
         
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("Informações da Viagem", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Detalhes da Viagem", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             trip?.let {
                 val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                Text("Período: ${df.format(Date(it.startDate))} - ${df.format(Date(it.endDate))}")
-                Text("Tipo: ${it.type}")
-                Text("Orçamento: R$ ${String.format("%.2f", it.budget)}")
-                Text("Gasto Total: R$ ${String.format("%.2f", it.totalSpent)}")
+                Text("📅 Período: ${df.format(Date(it.startDate))} - ${df.format(Date(it.endDate))}", color = TextDark)
+                Text("🏷️ Tipo: ${it.type}", color = TextDark)
+                Text("💰 Orçamento: R$ ${String.format(Locale.getDefault(), "%.2f", it.budget)}", color = TextDark)
             }
             
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Roteiro em breve...", color = PlaceholderGray)
+            
+            HorizontalDivider(color = InputBackground)
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text("Roteiro Personalizado", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            
+            if (isGenerating) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    CircularProgressIndicator(color = ButtonGradientStart)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Gerando seu roteiro com IA...", color = PlaceholderGray)
+                }
+            } else if (itinerary != null) {
+                val days = itinerary.generatedText.split(Regex("DIA\\s+\\d+", RegexOption.IGNORE_CASE))
+                    .filter { it.isNotBlank() }
+                
+                days.forEachIndexed { index, dayContent ->
+                    Card(
+                        modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = InputBackground)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "DIA ${index + 1}",
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TopGradientMedium,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = dayContent.trim(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextDark,
+                                lineHeight = 20.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text("Seu roteiro aparecerá aqui em instantes.", color = PlaceholderGray)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider(color = InputBackground)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("Preferências Adicionais", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Deseja incluir algo específico no roteiro?", fontSize = 12.sp, color = PlaceholderGray)
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            OutlinedTextField(
+                value = interests,
+                onValueChange = { interests = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Ex: Trilhas, Museus, Compras...") },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ButtonGradientStart,
+                    unfocusedBorderColor = InputBackground
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(
+                onClick = { onGenerate(interests) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                enabled = !isGenerating,
+                colors = ButtonDefaults.buttonColors(containerColor = ButtonGradientStart)
+            ) {
+                Text("REGENERAR ROTEIRO", fontWeight = FontWeight.Bold)
+            }
+            
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

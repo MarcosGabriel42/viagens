@@ -9,14 +9,21 @@ import com.google.android.gms.maps.model.LatLng
 import com.viagens.data.local.database.AppDatabase
 import com.viagens.data.local.entity.Photo
 import com.viagens.data.local.entity.Trip
+import com.viagens.data.local.entity.Itinerary
 import com.viagens.data.repository.PhotoRepository
+import com.viagens.data.repository.ItineraryRepository
+import com.viagens.data.repository.GeminiRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.Date
 
 class TripDetailsViewModel(application: Application) : AndroidViewModel(application) {
     private val tripDao = AppDatabase.getDatabase(application).tripDao()
     private val photoRepository = PhotoRepository(AppDatabase.getDatabase(application).photoDao())
+    private val itineraryRepository = ItineraryRepository(AppDatabase.getDatabase(application).itineraryDao())
+    private val geminiRepository = GeminiRepository()
 
     private val _trip = MutableStateFlow<Trip?>(null)
     val trip: StateFlow<Trip?> = _trip.asStateFlow()
@@ -26,6 +33,12 @@ class TripDetailsViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _location = MutableStateFlow<LatLng?>(null)
     val location: StateFlow<LatLng?> = _location.asStateFlow()
+
+    private val _itinerary = MutableStateFlow<Itinerary?>(null)
+    val itinerary: StateFlow<Itinerary?> = _itinerary.asStateFlow()
+
+    private val _isGenerating = MutableStateFlow(false)
+    val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
 
     fun loadTripDetails(tripId: Int) {
         viewModelScope.launch {
@@ -39,6 +52,55 @@ class TripDetailsViewModel(application: Application) : AndroidViewModel(applicat
             photoRepository.getPhotosByTrip(tripId).collect {
                 _photos.value = it
             }
+        }
+        
+        viewModelScope.launch {
+            itineraryRepository.getItineraryByTrip(tripId).collect {
+                _itinerary.value = it
+                if (it == null && _trip.value != null) {
+                    generateItinerary(tripId, "")
+                }
+            }
+        }
+    }
+
+    fun generateItinerary(tripId: Int, interests: String) {
+        val currentTrip = _trip.value ?: return
+        
+        viewModelScope.launch {
+            _isGenerating.value = true
+            val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val duration = (currentTrip.endDate - currentTrip.startDate) / (1000 * 60 * 60 * 24) + 1
+            
+            val preferencesPart = if (interests.isNotBlank()) "focado em $interests" else "com foco em pontos turísticos gerais"
+            
+            val prompt = """
+                Crie um roteiro turístico de $duration dias para ${currentTrip.destination} 
+                $preferencesPart com orçamento de R$ ${String.format(Locale.getDefault(), "%.2f", currentTrip.budget)} 
+                e tipo de viagem ${currentTrip.type}.
+                
+                O roteiro deve começar em ${df.format(Date(currentTrip.startDate))} e terminar em ${df.format(Date(currentTrip.endDate))}.
+                
+                IMPORTANTE: Responda usando EXATAMENTE este formato para cada dia:
+                DIA X
+                - Horário: Atividade (Sugestão de Local)
+                - Dica: Uma dica rápida
+                
+                Exemplo:
+                DIA 1
+                - 09:00: Visita ao Teatro Amazonas
+                - 12:00: Almoço no Mercado Municipal
+                - Dica: Leve protetor solar.
+                
+                Use uma formatação limpa e amigável.
+            """.trimIndent()
+
+            val result = geminiRepository.generateItinerary(prompt)
+            if (result != null) {
+                val itinerary = Itinerary(tripId = tripId, generatedText = result)
+                itineraryRepository.saveItinerary(itinerary)
+            }
+            _isGenerating.value = false
         }
     }
 
