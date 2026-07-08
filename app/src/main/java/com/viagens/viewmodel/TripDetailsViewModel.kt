@@ -5,7 +5,7 @@ import android.location.Geocoder
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.maps.model.LatLng
+import org.osmdroid.util.GeoPoint
 import com.viagens.data.local.database.AppDatabase
 import com.viagens.data.local.entity.Photo
 import com.viagens.data.local.entity.Trip
@@ -31,8 +31,8 @@ class TripDetailsViewModel(application: Application) : AndroidViewModel(applicat
     private val _photos = MutableStateFlow<List<Photo>>(emptyList())
     val photos: StateFlow<List<Photo>> = _photos.asStateFlow()
 
-    private val _location = MutableStateFlow<LatLng?>(null)
-    val location: StateFlow<LatLng?> = _location.asStateFlow()
+    private val _location = MutableStateFlow<GeoPoint?>(null)
+    val location: StateFlow<GeoPoint?> = _location.asStateFlow()
 
     private val _itinerary = MutableStateFlow<Itinerary?>(null)
     val itinerary: StateFlow<Itinerary?> = _itinerary.asStateFlow()
@@ -57,7 +57,8 @@ class TripDetailsViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             itineraryRepository.getItineraryByTrip(tripId).collect {
                 _itinerary.value = it
-                if (it == null && _trip.value != null) {
+                // Gera automaticamente se não houver roteiro salvo
+                if (it == null && _trip.value != null && !_isGenerating.value) {
                     generateItinerary(tripId, "")
                 }
             }
@@ -110,7 +111,7 @@ class TripDetailsViewModel(application: Application) : AndroidViewModel(applicat
                 val geocoder = Geocoder(getApplication(), Locale.getDefault())
                 val addresses = geocoder.getFromLocationName(destination, 1)
                 if (!addresses.isNullOrEmpty()) {
-                    _location.value = LatLng(addresses[0].latitude, addresses[0].longitude)
+                    _location.value = GeoPoint(addresses[0].latitude, addresses[0].longitude)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

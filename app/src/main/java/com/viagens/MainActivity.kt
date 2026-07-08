@@ -8,11 +8,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import com.viagens.ui.navigation.AppNavigation
 import com.viagens.ui.theme.ViagensTheme
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        Configuration.getInstance().userAgentValue = packageName
 
         setContent {
             ViagensTheme {

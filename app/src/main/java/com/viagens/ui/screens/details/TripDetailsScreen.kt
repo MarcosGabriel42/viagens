@@ -40,12 +40,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.viagens.ui.navigation.Screen
 import coil.compose.AsyncImage
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.rememberMarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+import org.osmdroid.util.GeoPoint
+import com.viagens.ui.components.OSMMapView
 import com.viagens.ui.theme.*
 import com.viagens.viewmodel.TripDetailsViewModel
 import java.io.File
@@ -136,7 +132,7 @@ fun TripDetailsScreen(navController: NavController, tripId: Int) {
 @Composable
 fun RoteiroContent(
     trip: com.viagens.data.local.entity.Trip?,
-    location: LatLng?,
+    location: GeoPoint?,
     itinerary: com.viagens.data.local.entity.Itinerary?,
     isGenerating: Boolean,
     onGenerate: (String) -> Unit
@@ -145,57 +141,80 @@ fun RoteiroContent(
     val scrollState = rememberScrollState()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-        Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
-            if (location != null) {
-                val cameraPositionState = rememberCameraPositionState {
-                    position = CameraPosition.fromLatLngZoom(location, 12f)
-                }
-                
-                LaunchedEffect(location) {
-                    cameraPositionState.position = CameraPosition.fromLatLngZoom(location, 12f)
-                }
-
-                GoogleMap(
-                    modifier = Modifier.fillMaxSize(),
-                    cameraPositionState = cameraPositionState,
-                    uiSettings = com.google.maps.android.compose.MapUiSettings(zoomControlsEnabled = true)
-                ) {
-                    Marker(
-                        state = rememberMarkerState(position = location),
-                        title = trip?.destination
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (location != null) {
+                    val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    val period = trip?.let { "${df.format(Date(it.startDate))} - ${df.format(Date(it.endDate))}" } ?: ""
+                    
+                    OSMMapView(
+                        modifier = Modifier.fillMaxSize(),
+                        location = location,
+                        title = trip?.destination,
+                        snippet = period
                     )
-                }
-            } else {
-                Box(modifier = Modifier.fillMaxSize().background(InputBackground), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = ButtonGradientStart)
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(InputBackground), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = ButtonGradientStart)
+                    }
                 }
             }
         }
         
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("Detalhes da Viagem", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            trip?.let {
-                val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                Text("📅 Período: ${df.format(Date(it.startDate))} - ${df.format(Date(it.endDate))}", color = TextDark)
-                Text("🏷️ Tipo: ${it.type}", color = TextDark)
-                Text("💰 Orçamento: R$ ${String.format(Locale.getDefault(), "%.2f", it.budget)}", color = TextDark)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Route, contentDescription = null, tint = ButtonGradientStart, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Detalhes da Viagem", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    trip?.let {
+                        val df = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        
+                        DetailRow("📅 Período", "${df.format(Date(it.startDate))} - ${df.format(Date(it.endDate))}")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = InputBackground.copy(alpha = 0.5f))
+                        DetailRow("🏷️ Tipo", it.type)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = InputBackground.copy(alpha = 0.5f))
+                        DetailRow("💰 Orçamento", "R$ ${String.format(Locale.getDefault(), "%.2f", it.budget)}")
+                    }
+                }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            HorizontalDivider(color = InputBackground)
-            
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             
             Text("Roteiro Personalizado", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
             
             if (isGenerating) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    CircularProgressIndicator(color = ButtonGradientStart)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Gerando seu roteiro com IA...", color = PlaceholderGray)
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = InputBackground.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally, 
+                        modifier = Modifier.fillMaxWidth().padding(24.dp)
+                    ) {
+                        CircularProgressIndicator(color = ButtonGradientStart)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("A IA está criando seu roteiro perfeito...", color = TextDark, textAlign = TextAlign.Center)
+                    }
                 }
             } else if (itinerary != null) {
                 val days = itinerary.generatedText.split(Regex("DIA\\s+\\d+", RegexOption.IGNORE_CASE))
@@ -203,36 +222,66 @@ fun RoteiroContent(
                 
                 days.forEachIndexed { index, dayContent ->
                     Card(
-                        modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(),
+                        modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = InputBackground)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "DIA ${index + 1}",
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TopGradientMedium,
-                                fontSize = 14.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    color = ButtonGradientStart,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "DIA ${index + 1}",
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = White,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = dayContent.trim(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextDark,
-                                lineHeight = 20.sp
+                                lineHeight = 22.sp
                             )
                         }
                     }
                 }
             } else {
-                Text("Seu roteiro aparecerá aqui em instantes.", color = PlaceholderGray)
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = InputBackground.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth().padding(24.dp)
+                    ) {
+                        Text(
+                            "Não foi possível carregar o roteiro.", 
+                            color = PlaceholderGray,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { onGenerate(interests) },
+                            colors = ButtonDefaults.buttonColors(containerColor = ButtonGradientStart)
+                        ) {
+                            Text("TENTAR GERAR NOVAMENTE")
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             HorizontalDivider(color = InputBackground)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Preferências Adicionais", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Ajustar Preferências", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text("Deseja incluir algo específico no roteiro?", fontSize = 12.sp, color = PlaceholderGray)
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -258,11 +307,23 @@ fun RoteiroContent(
                 enabled = !isGenerating,
                 colors = ButtonDefaults.buttonColors(containerColor = ButtonGradientStart)
             ) {
-                Text("REGENERAR ROTEIRO", fontWeight = FontWeight.Bold)
+                Text("REGENERAR ROTEIRO COM IA", fontWeight = FontWeight.Bold)
             }
             
             Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = PlaceholderGray, fontSize = 14.sp)
+        Text(value, color = TextDark, fontWeight = FontWeight.Medium, fontSize = 14.sp)
     }
 }
 
