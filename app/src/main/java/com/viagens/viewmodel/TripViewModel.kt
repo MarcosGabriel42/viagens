@@ -34,7 +34,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     private val _nearestTrip = MutableStateFlow<Trip?>(null)
     val nearestTrip: StateFlow<Trip?> = _nearestTrip.asStateFlow()
 
-    private val _currentCity = MutableStateFlow<String?>(null)
+    private val _currentCity = MutableStateFlow<String?>("Buscando localização...")
     val currentCity: StateFlow<String?> = _currentCity.asStateFlow()
 
     private val _isGeneratingAI = MutableStateFlow(false)
@@ -67,11 +67,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         val future = tripList.filter { it.startDate > now }.minByOrNull { it.startDate }
-        if (future != null) {
-            _nearestTrip.value = future
-            return
-        }
-        _nearestTrip.value = tripList.maxByOrNull { it.endDate }
+        _nearestTrip.value = future ?: tripList.maxByOrNull { it.endDate }
     }
 
     suspend fun getTripById(id: Int): Trip? = tripDao.getTripById(id)
@@ -107,22 +103,22 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteTrip(trip: Trip) {
-        viewModelScope.launch {
-            tripDao.delete(trip)
-        }
+        viewModelScope.launch { tripDao.delete(trip) }
     }
 
-    // --- IA Gemini ---
+    // IA Gemini: Gera 5 itens para o checklist
     fun generateAIRoute(tripId: Int, destination: String, type: String) {
         viewModelScope.launch {
             _isGeneratingAI.value = true
             val contexto = if (type == "Lazer") "turismo e lazer" else "trabalho e networking"
-            val prompt = "Crie 5 objetivos para uma viagem de $contexto para $destination. Retorne apenas a lista."
+            val prompt = "Crie 5 objetivos curtos para uma viagem a $destination. Perfil: $contexto. Retorne apenas os itens, um por linha."
 
             val result = geminiRepository.generateItinerary(prompt)
-            result?.let {
-                val itinerary = Itinerary(tripId = tripId, generatedText = it)
-                itineraryDao.insert(itinerary)
+            result?.lines()?.filter { it.isNotBlank() }?.take(5)?.forEach { title ->
+                val cleanTitle = title.replace(Regex("^[*\\-•\\d.]+\\s*"), "").trim()
+                if (cleanTitle.isNotEmpty()) {
+                    addItineraryItem(tripId, cleanTitle)
+                }
             }
             _isGeneratingAI.value = false
         }
@@ -130,15 +126,24 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Fotos ---
     fun getTripImages(tripId: Int): Flow<List<Photo>> = photoDao.getPhotosByTrip(tripId)
-    
     fun addTripImage(tripId: Int, uri: String) {
         viewModelScope.launch { photoDao.insert(Photo(tripId = tripId, imageUri = uri)) }
     }
 
-    // --- Roteiro ---
-    fun getTripItinerary(tripId: Int): Flow<Itinerary?> = itineraryDao.getItineraryByTrip(tripId)
+    // --- Roteiro (Checklist) ---
+    fun getTripItinerary(tripId: Int): Flow<List<Itinerary>> = itineraryDao.getItineraryByTrip(tripId)
+    fun addItineraryItem(tripId: Int, title: String) {
+        viewModelScope.launch { itineraryDao.insert(Itinerary(tripId = tripId, title = title)) }
+    }
+    fun toggleTask(itinerary: Itinerary) {
+        viewModelScope.launch { itineraryDao.update(itinerary.copy(isCompleted = !itinerary.isCompleted)) }
+    }
+    fun deleteTask(itinerary: Itinerary) {
+        viewModelScope.launch { itineraryDao.delete(itinerary) }
+    }
 
     fun requestLocationAndSearchTrip() {
+        _currentCity.value = "Buscando localização..."
         try {
             fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                 .addOnSuccessListener { location ->
@@ -154,7 +159,8 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 @Suppress("DEPRECATION")
                 val addresses = geocoder.getFromLocation(latitude, longitude, 1)
                 if (!addresses.isNullOrEmpty()) {
-                    _currentCity.value = addresses[0].locality
+                    val addr = addresses[0]
+                    _currentCity.value = "Você está em ${addr.locality} - ${addr.adminArea}"
                 }
             } catch (e: Exception) { }
         }

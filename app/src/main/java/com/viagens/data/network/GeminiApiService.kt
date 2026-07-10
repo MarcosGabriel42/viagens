@@ -1,16 +1,14 @@
 package com.viagens.data.network
 
 import retrofit2.http.Body
-import retrofit2.http.Header
-import retrofit2.http.Headers
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface GeminiApiService {
 
-    @Headers("Content-Type: application/json")
-    @POST("v1beta/models/gemini-3.1-flash-lite:generateContent")
+    @POST("v1beta/models/gemini-2.5-flash:generateContent")
     suspend fun generateContent(
-        @Header("x-goog-api-key") apiKey: String,
+        @Query("key") apiKey: String,
         @Body request: GeminiRequest
     ): GeminiResponse
 }
