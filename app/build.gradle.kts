@@ -20,12 +20,19 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Carrega local.properties
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
             localProperties.load(localPropertiesFile.inputStream())
         }
-        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties.getProperty("GEMINI_API_KEY") ?: ""}\"")
+
+        // Chave fornecida pelo usuário como fallback obrigatório e prioritário se local estiver vazio
+        val userApiKey = "AQ.Ab8RN6JBaYY5J1KwKIiQHXwVniluUTN7DFBiuchH-1YF-vtQ_Q"
+        val apiKeyFromProps = localProperties.getProperty("GEMINI_API_KEY")
+        val apiKey = if (apiKeyFromProps.isNullOrBlank()) userApiKey else apiKeyFromProps
+        
+        buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
     }
 
     buildTypes {

@@ -16,7 +16,7 @@ interface TripDao {
     suspend fun findTripByCityAndDate(userId: Int, city: String, currentTime: Long): Trip?
 
     @Insert
-    suspend fun insert(trip: Trip)
+    suspend fun insert(trip: Trip): Long
 
     @Update
     suspend fun update(trip: Trip)

@@ -1,5 +1,6 @@
 package com.viagens.data.repository
 
+import android.util.Log
 import com.viagens.BuildConfig
 import com.viagens.data.network.Content
 import com.viagens.data.network.GeminiApiService
@@ -28,9 +29,29 @@ class GeminiRepository {
             .build()
 
         apiService = retrofit.create(GeminiApiService::class.java)
+        
+        // Logs de diagnóstico
+        Log.d("GeminiConfig", "Base URL: https://generativelanguage.googleapis.com/")
+        Log.d("GeminiConfig", "API Key present: ${BuildConfig.GEMINI_API_KEY.isNotEmpty()}")
+        if (BuildConfig.GEMINI_API_KEY.isEmpty()) {
+            Log.e("GeminiConfig", "CRITICAL ERROR: GEMINI_API_KEY is EMPTY")
+        }
     }
 
     suspend fun generateItinerary(prompt: String): String? {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        val modelName = "gemini-2.5-flash" // Atualizado conforme solicitado
+        val endpoint = "v1beta/models/$modelName:generateContent"
+        
+        Log.d("GeminiRequest", "Generating itinerary with model: $modelName")
+        Log.d("GeminiRequest", "Endpoint: $endpoint")
+        Log.d("GeminiRequest", "Prompt: $prompt")
+        
+        if (apiKey.isEmpty()) {
+            Log.e("GeminiRequest", "Aborting request: API Key is missing")
+            return "Erro: Chave de API não configurada corretamente."
+        }
+
         return try {
             val request = GeminiRequest(
                 contents = listOf(
@@ -41,10 +62,19 @@ class GeminiRepository {
                     )
                 )
             )
-            val response = apiService.generateContent(BuildConfig.GEMINI_API_KEY, request)
-            response.candidates.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            
+            val response = apiService.generateContent(apiKey, request)
+            val resultText = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            
+            if (resultText != null) {
+                Log.d("GeminiResponse", "Success: ${resultText.take(50)}...")
+                resultText
+            } else {
+                Log.e("GeminiResponse", "Empty response from Gemini")
+                null
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("GeminiResponse", "Exception during Gemini call with model $modelName", e)
             null
         }
     }
