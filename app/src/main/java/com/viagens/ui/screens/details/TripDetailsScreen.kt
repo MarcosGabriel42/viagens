@@ -216,8 +216,8 @@ fun RoteiroContent(
                         Text("A IA está criando seu roteiro perfeito...", color = TextDark, textAlign = TextAlign.Center)
                     }
                 }
-            } else if (itinerary != null) {
-                val days = itinerary.generatedText.split(Regex("DIA\\s+\\d+", RegexOption.IGNORE_CASE))
+            } else if (itinerary?.generatedText != null) {
+                val days = itinerary.generatedText!!.split(Regex("DIA\\s+\\d+", RegexOption.IGNORE_CASE))
                     .filter { it.isNotBlank() }
                 
                 days.forEachIndexed { index, dayContent ->

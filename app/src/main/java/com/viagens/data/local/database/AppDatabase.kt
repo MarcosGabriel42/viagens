@@ -13,7 +13,7 @@ import com.viagens.data.local.entity.Trip
 import com.viagens.data.local.entity.Photo
 import com.viagens.data.local.entity.Itinerary
 
-@Database(entities = [User::class, Trip::class, Photo::class, Itinerary::class], version = 12, exportSchema = false)
+@Database(entities = [User::class, Trip::class, Photo::class, Itinerary::class], version = 13, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao

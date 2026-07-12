@@ -19,7 +19,8 @@ data class Itinerary(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val tripId: Int,
-    val title: String,
+    val title: String = "",
+    val generatedText: String? = null,
     val isCompleted: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

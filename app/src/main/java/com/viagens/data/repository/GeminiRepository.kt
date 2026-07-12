@@ -40,7 +40,7 @@ class GeminiRepository {
 
     suspend fun generateItinerary(prompt: String): String? {
         val apiKey = BuildConfig.GEMINI_API_KEY
-        val modelName = "gemini-2.5-flash" // Atualizado conforme solicitado
+        val modelName = "gemini-3.1-flash-lite" // Atualizado conforme solicitado
         val endpoint = "v1beta/models/$modelName:generateContent"
         
         Log.d("GeminiRequest", "Generating itinerary with model: $modelName")
