@@ -31,8 +31,12 @@ android {
         val userApiKey = ""
         val apiKeyFromProps = localProperties.getProperty("GEMINI_API_KEY")
         val apiKey = if (apiKeyFromProps.isNullOrBlank()) userApiKey else apiKeyFromProps
-        
-        buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${project.findProperty("GEMINI_API_KEY") ?: ""}\""
+        )
     }
 
     buildTypes {
